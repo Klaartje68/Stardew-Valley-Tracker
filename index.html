@@ -629,7 +629,9 @@ const PREREQ_CATEGORIES = [
 
 const PREREQUISITES = [
   // Buildings
+  {id:'pr_mill',         label:'Mill',            cost:2500,  wood:150, stone:50, cloth:4, category:'building', seasons:['yearround'], unlocks:[]},
   {id:'pr_kitchen',      label:'Kitchen',         cost:10000, wood:450,                  category:'building', seasons:['yearround'], unlocks:['maki_roll','fried_egg']},
+  {id:'pr_silo',         label:'Silo',            cost:100,   stone:100, clay:10, bars:5, barType:'Copper Bar', category:'building', seasons:['spring'], unlocks:[]},
   {id:'pr_coop',         label:'Coop',           cost:4000,  wood:300, stone:100,         category:'building', seasons:['spring'], unlocks:['large_brown_egg','large_white_egg']},
   {id:'pr_big_coop',     label:'Big Coop',        cost:10000, wood:400, stone:150,         category:'building', seasons:['summer'], unlocks:['duck_egg','duck_feather']},
   {id:'pr_deluxe_coop',  label:'Deluxe Coop',     cost:20000, wood:500, stone:200,         category:'building', seasons:['winter'], unlocks:['rabbit_foot','wool']},
@@ -848,7 +850,12 @@ function renderPlanner(){
     const sourceData = season.id==='yearround' ? YEARROUND : SEASONAL.filter(si=>si.season===season.id);
     const needed = sourceData.filter(si=>!isChecked(si.id));
 
-    if(needed.length===0){
+    const seasonPrereqsAll = PREREQUISITES.filter(p =>
+      p.seasons.includes(season.id) || p.seasons.includes('all')
+    );
+    const prereqsNeeded = seasonPrereqsAll.filter(p => !isChecked(p.id));
+
+    if(needed.length===0 && prereqsNeeded.length===0){
       panel.innerHTML=`
         <div class="season-header-bar" data-s="${season.id}">
           <span class="season-icon">${season.icon}</span>
@@ -902,15 +909,10 @@ function renderPlanner(){
     }).join('');
 
     // Prerequisites section
-    const seasonPrereqs = PREREQUISITES.filter(p =>
-      (p.seasons.includes(season.id) || p.seasons.includes('all')) &&
-      !isChecked(p.id)
-    );
-
     let prereqHtml = '';
-    if(seasonPrereqs.length > 0){
+    if(prereqsNeeded.length > 0){
       const pGroups = {};
-      seasonPrereqs.forEach(p => {
+      prereqsNeeded.forEach(p => {
         if(!pGroups[p.category]) pGroups[p.category] = [];
         pGroups[p.category].push(p);
       });
@@ -920,11 +922,13 @@ function renderPlanner(){
           const costBadge  = p.cost  ? `<span class="cost-badge">🪙 ${p.cost.toLocaleString()}</span>` : '';
           const woodBadge  = p.wood  ? `<span class="wood-badge">🪵 ${p.wood}</span>` : '';
           const stoneBadge = p.stone ? `<span class="stone-badge">🪨 ${p.stone}</span>` : '';
-          const barBadge   = p.bars  ? `<span class="bar-badge">${p.barType === 'Copper Bar' ? '🟤' : p.barType === 'Iron Bar' ? '⬜' : p.barType === 'Gold Bar' ? '🟡' : '🟣'} ×${p.bars}</span>` : '';
+          const clayBadge  = p.clay  ? `<span class="stone-badge">🟤 ${p.clay} Clay</span>` : '';
+          const clothBadge = p.cloth ? `<span class="stone-badge">🧵 ${p.cloth} Cloth</span>` : '';
+          const barBadge   = p.bars  ? `<span class="bar-badge">${p.barType === 'Copper Bar' ? '🟫' : p.barType === 'Iron Bar' ? '⬜' : p.barType === 'Gold Bar' ? '🟡' : '🟣'} ×${p.bars}</span>` : '';
           return `<div class="item-row ${done?'checked':''}" onclick="togglePrereq('${p.id}')">
             <div class="item-checkbox">${done?'✓':''}</div>
             <span class="item-label">${p.label}</span>
-            <div class="item-badges">${costBadge}${woodBadge}${stoneBadge}${barBadge}</div>
+            <div class="item-badges">${costBadge}${woodBadge}${stoneBadge}${clayBadge}${clothBadge}${barBadge}</div>
           </div>`;
         }).join('')
       ).join('');
